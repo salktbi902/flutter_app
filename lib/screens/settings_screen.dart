@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/ai_service.dart';
 import '../services/websocket_service.dart';
+import '../services/openclaw_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _checkHealth() async {
     setState(() => _isChecking = true);
     final data = await context.read<AIService>().checkHealth();
+    await context.read<OpenClawService>().checkHealth();
     setState(() {
       _healthData = data;
       _isChecking = false;
@@ -56,29 +58,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       const Icon(Icons.cloud, size: 24),
                       const SizedBox(width: 8),
-                      Text(
-                        'حالة السيرفر',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text('حالة السيرفرات', style: Theme.of(context).textTheme.titleMedium),
                       const Spacer(),
                       if (_isChecking)
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       else
-                        IconButton(
-                          icon: const Icon(Icons.refresh),
-                          onPressed: _checkHealth,
-                        ),
+                        IconButton(icon: const Icon(Icons.refresh), onPressed: _checkHealth),
                     ],
                   ),
                   const Divider(),
                   _StatusRow(
-                    label: 'السيرفر',
+                    label: 'AI Studio API',
                     value: _healthData != null ? 'متصل' : 'غير متصل',
                     isConnected: _healthData != null,
+                  ),
+                  Consumer<OpenClawService>(
+                    builder: (_, oc, __) => _StatusRow(
+                      label: 'OpenClaw v4.0',
+                      value: oc.isConnected ? 'متصل' : 'غير متصل',
+                      isConnected: oc.isConnected,
+                    ),
+                  ),
+                  Consumer<WebSocketService>(
+                    builder: (_, ws, __) => _StatusRow(
+                      label: 'WebSocket',
+                      value: ws.isConnected ? 'متصل' : 'غير متصل',
+                      isConnected: ws.isConnected,
+                    ),
                   ),
                   if (_healthData != null) ...[
                     _StatusRow(
@@ -92,32 +98,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: _healthData!['services']['redis'] ?? 'غير معروف',
                         isConnected: _healthData!['services']['redis'] == 'connected',
                       ),
-                      _StatusRow(
-                        label: 'Pinecone',
-                        value: _healthData!['services']['pinecone'] ?? 'غير معروف',
-                        isConnected: _healthData!['services']['pinecone'] == 'connected',
-                      ),
-                      _StatusRow(
-                        label: 'OpenAI',
-                        value: _healthData!['services']['openai'] ?? 'غير معروف',
-                        isConnected: _healthData!['services']['openai'] == 'configured',
-                      ),
                     ],
                   ],
-                  const SizedBox(height: 8),
-                  Consumer<WebSocketService>(
-                    builder: (_, ws, __) => _StatusRow(
-                      label: 'WebSocket',
-                      value: ws.isConnected ? 'متصل' : 'غير متصل',
-                      isConnected: ws.isConnected,
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-          // معلومات السيرفر
+          // معلومات الاتصال
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -128,17 +116,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       const Icon(Icons.info_outline, size: 24),
                       const SizedBox(width: 8),
-                      Text(
-                        'معلومات الاتصال',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text('معلومات الاتصال', style: Theme.of(context).textTheme.titleMedium),
                     ],
                   ),
                   const Divider(),
-                  _InfoRow(label: 'IP', value: '76.13.213.128'),
-                  _InfoRow(label: 'المنفذ', value: '3000'),
-                  _InfoRow(label: 'API', value: 'http://76.13.213.128:3000'),
-                  _InfoRow(label: 'WebSocket', value: 'ws://76.13.213.128:3000'),
+                  const _InfoRow(label: 'IP', value: '76.13.213.128'),
+                  const _InfoRow(label: 'AI Studio', value: 'http://76.13.213.128:3000'),
+                  const _InfoRow(label: 'OpenClaw', value: 'http://76.13.213.128:3100'),
+                  const _InfoRow(label: 'WebSocket', value: 'ws://76.13.213.128:3000'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // OpenClaw
+          Card(
+            color: const Color(0xFFFF6B35).withOpacity(0.1),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.pets, size: 24, color: Color(0xFFFF6B35)),
+                      const SizedBox(width: 8),
+                      Text('OpenClaw Master Agent', style: Theme.of(context).textTheme.titleMedium),
+                    ],
+                  ),
+                  const Divider(),
+                  Consumer<OpenClawService>(
+                    builder: (_, oc, __) => Column(
+                      children: [
+                        _StatusRow(label: 'الوكلاء', value: '${oc.agents.length} وكيل', isConnected: oc.agents.isNotEmpty),
+                        _StatusRow(label: 'المتصفح', value: oc.browserStatus?['puppeteer'] == true ? 'Puppeteer نشط' : 'غير نشط',
+                            isConnected: oc.browserStatus?['puppeteer'] == true),
+                        _StatusRow(label: 'الذاكرة', value: '${oc.memoryStatus?['entries'] ?? 0} عنصر', isConnected: true),
+                        _StatusRow(label: 'الحماية', value: oc.securityStatus?['firewall'] ?? 'نشط', isConnected: true),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -155,16 +172,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       const Icon(Icons.smart_toy, size: 24),
                       const SizedBox(width: 8),
-                      Text(
-                        'عن التطبيق',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text('عن التطبيق', style: Theme.of(context).textTheme.titleMedium),
                     ],
                   ),
                   const Divider(),
-                  _InfoRow(label: 'الاسم', value: 'Android AI Studio'),
-                  _InfoRow(label: 'الإصدار', value: '2.0.0'),
-                  _InfoRow(label: 'المطور', value: 'salktbi902'),
+                  const _InfoRow(label: 'الاسم', value: 'Android AI Studio'),
+                  const _InfoRow(label: 'الإصدار', value: '3.0.0'),
+                  const _InfoRow(label: 'المطور', value: 'salktbi902'),
+                  const _InfoRow(label: 'OpenClaw', value: 'v4.0 Master Agent'),
                   const SizedBox(height: 12),
                   FilledButton.tonal(
                     onPressed: () async {
@@ -198,19 +213,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       const Icon(Icons.build_circle_outlined, size: 24),
                       const SizedBox(width: 8),
-                      Text(
-                        'إجراءات',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text('إجراءات', style: Theme.of(context).textTheme.titleMedium),
                     ],
                   ),
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.refresh),
-                    title: const Text('إعادة الاتصال'),
+                    title: const Text('إعادة الاتصال بالكل'),
                     onTap: () {
                       context.read<WebSocketService>().disconnect();
                       context.read<WebSocketService>().connect();
+                      context.read<OpenClawService>().loadAll();
                       _checkHealth();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('جاري إعادة الاتصال...')),
@@ -225,6 +238,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('تم مسح المحادثات')),
                       );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.restart_alt, color: Color(0xFFFF6B35)),
+                    title: const Text('إعادة تشغيل OpenClaw'),
+                    onTap: () async {
+                      await context.read<OpenClawService>().codexExec('systemctl restart openclaw');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('جاري إعادة تشغيل OpenClaw...')),
+                        );
+                      }
                     },
                   ),
                 ],
@@ -242,11 +267,7 @@ class _StatusRow extends StatelessWidget {
   final String value;
   final bool isConnected;
 
-  const _StatusRow({
-    required this.label,
-    required this.value,
-    required this.isConnected,
-  });
+  const _StatusRow({required this.label, required this.value, required this.isConnected});
 
   @override
   Widget build(BuildContext context) {
@@ -254,11 +275,7 @@ class _StatusRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(
-            Icons.circle,
-            size: 10,
-            color: isConnected ? Colors.greenAccent : Colors.redAccent,
-          ),
+          Icon(Icons.circle, size: 10, color: isConnected ? Colors.greenAccent : Colors.redAccent),
           const SizedBox(width: 8),
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           const Spacer(),

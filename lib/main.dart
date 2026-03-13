@@ -4,8 +4,10 @@ import 'screens/chat_screen.dart';
 import 'screens/builder_screen.dart';
 import 'screens/terminal_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/openclaw_screen.dart';
 import 'services/ai_service.dart';
 import 'services/websocket_service.dart';
+import 'services/openclaw_service.dart';
 
 void main() {
   runApp(
@@ -13,6 +15,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AIService()),
         ChangeNotifierProvider(create: (_) => WebSocketService()),
+        ChangeNotifierProvider(create: (_) => OpenClawService()),
       ],
       child: const AndroidAIStudio(),
     ),
@@ -27,6 +30,7 @@ class AndroidAIStudio extends StatelessWidget {
     return MaterialApp(
       title: 'Android AI Studio',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('ar'),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6C63FF),
@@ -52,6 +56,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     ChatScreen(),
+    OpenClawScreen(),
     BuilderScreen(),
     TerminalScreen(),
     SettingsScreen(),
@@ -60,9 +65,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // الاتصال بالسيرفر عند بدء التطبيق
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WebSocketService>().connect();
+      context.read<OpenClawService>().loadAll();
     });
   }
 
@@ -83,6 +88,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.chat_bubble_outline),
             selectedIcon: Icon(Icons.chat_bubble),
             label: 'محادثة',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.pets_outlined),
+            selectedIcon: Icon(Icons.pets),
+            label: 'OpenClaw',
           ),
           NavigationDestination(
             icon: Icon(Icons.build_outlined),
