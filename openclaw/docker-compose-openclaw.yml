@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  openclaw-guardian:
+    build:
+      context: .
+      dockerfile: Dockerfile.openclaw
+    container_name: openclaw-guardian
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - /root/openclaw-system:/root/openclaw-system
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/log:/var/log:ro
+    environment:
+      - NODE_ENV=production
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - SONAR_API_KEY=${SONAR_API_KEY:-}
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - seccomp=unconfined
+    networks:
+      - openclaw-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  openclaw-net:
+    driver: bridge

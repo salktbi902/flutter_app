@@ -1,0 +1,48 @@
+FROM node:22-slim
+
+# Install Chromium and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    wget \
+    curl \
+    jq \
+    iptables \
+    iproute2 \
+    procps \
+    net-tools \
+    docker.io \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Puppeteer to use system Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV CHROME_BIN=/usr/bin/chromium
+
+WORKDIR /app
+
+# Install Node dependencies
+RUN npm install puppeteer-core puppeteer
+
+# Copy server
+COPY openclaw_main_v2.js /app/server.js
+
+# Create directories
+RUN mkdir -p /root/openclaw-system/{logs,security,monitor,agents,tools,browser/screenshots,termux}
+
+EXPOSE 3100
+
+CMD ["node", "server.js"]
