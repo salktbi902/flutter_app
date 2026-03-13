@@ -50,3 +50,4 @@ build/
 .history
 .svn/
 migrate_working_dir/
+.github/workflows/
