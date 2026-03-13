@@ -60,8 +60,12 @@ class _OllamaScreenState extends State<OllamaScreen> with SingleTickerProviderSt
 
   Future<void> _loadModels() async {
     final data = await _api('models');
-    if (mounted && data is List) {
-      setState(() => _models = List<Map<String, dynamic>>.from(data));
+    if (mounted) {
+      if (data.containsKey('models') && data['models'] is List) {
+        setState(() => _models = List<Map<String, dynamic>>.from(data['models']));
+      } else if (data.containsKey('error')) {
+        setState(() => _models = []);
+      }
     }
   }
 
