@@ -6,6 +6,7 @@ import 'screens/terminal_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/openclaw_screen.dart';
 import 'screens/ollama_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'services/ai_service.dart';
 import 'services/websocket_service.dart';
 import 'services/openclaw_service.dart';
@@ -56,6 +57,7 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
+    const DashboardScreen(serverUrl: 'http://76.13.213.128:3100'),
     const ChatScreen(),
     const OpenClawScreen(),
     const OllamaScreen(serverUrl: 'http://76.13.213.128:3100'),
@@ -85,7 +87,13 @@ class _MainScreenState extends State<MainScreen> {
         onDestinationSelected: (index) {
           setState(() => _currentIndex = index);
         },
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'الرئيسية',
+          ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),
             selectedIcon: Icon(Icons.chat_bubble),
@@ -100,11 +108,6 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.smart_toy_outlined),
             selectedIcon: Icon(Icons.smart_toy),
             label: 'Ollama',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.build_outlined),
-            selectedIcon: Icon(Icons.build),
-            label: 'بناء',
           ),
           NavigationDestination(
             icon: Icon(Icons.terminal_outlined),
